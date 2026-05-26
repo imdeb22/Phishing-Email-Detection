@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Email Detection Model</title>
+    <link rel="icon" type="image/icon" href="Cvr.png">
+
+    <style>
+        :root {
+            --bg: #000000;
+            --card: #0a0a0a;
+            --border: #262626;
+            --border-focus: #525252;
+            --text: #e5e5e5;
+            --text-muted: #737373;
+            --primary: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: Consolas, "Andale Mono", "Lucida Console", "Courier New", monospace;
+            margin: 0;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        h1 { 
+            margin: 0 0 0.5rem 0; 
+            font-size: 1.3rem; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+        
+        header p { 
+            margin: 0; 
+            color: var(--text-muted); 
+            font-size: 0.8rem; 
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            display: grid;
+        }
+
+        h2 { 
+            font-size: 0.9rem; 
+            margin-top: 0; 
+            margin-bottom: 1.2rem; 
+            color: var(--text-muted); 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 0.5rem; 
+        }
+
+        button {
+            background: #171717;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.6rem 1.2rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            width: 100%;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover { 
+            background: #ffffff; 
+            color: #000000; 
+            border-color: #ffffff;
+        }
+        
+        button:disabled { 
+            background: #050505; 
+            color: var(--text-muted); 
+            border-color: var(--border);
+            cursor: not-allowed; 
+        }
+        button:disabled:hover { background: #050505; color: var(--text-muted); border-color: var(--border); }
+
+        .list-container {
+            max-height: 160px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+            background: #050505;
+        }
+
+        .list-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 0.5rem; }
+
+        .badge {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 1px solid var(--border);
+        }
+        .badge.safe { background: #0c0c0c; color: #fff; border-color: var(--border-focus); }
+        .badge.phish { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: rgba(239, 68, 68, 0.4); }
+
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .cell { 
+            padding: 0.75rem; 
+            border: 1px solid var(--border); 
+            background: #050505;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .cell div { font-size: 1.2rem; font-weight: bold; margin-top: 0.3rem; }
+        .cell.good { color: var(--success); background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); }
+        .cell.bad { color: var(--danger); background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2); }
+        .cell.good div { color: #fff; }
+        .cell.bad div { color: #fff; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+        .btn-sm { background: #050505; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.75rem; width: auto; padding: 0.3rem 0.6rem; }
+        .btn-sm:hover { background: #171717; color: var(--text); border-color: var(--border-focus); }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #000000;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 0.5rem;
+            box-sizing: border-box;
+            resize: vertical;
+            margin-bottom: 1rem;
+            font-family: inherit;
+            outline: none;
+        }
+        textarea:focus { border-color: var(--border-focus); }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            display: none;
+            border: 1px solid var(--border);
+        }
+        .result.safe { display: block; border-color: var(--success); background: rgba(16, 185, 129, 0.05); }
+        .result.phish { display: block; border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+        
+        .tags { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+        .tag { background: #0c0c0c; border: 1px solid var(--border); padding: 0.2rem 0.4rem; font-size: 0.75rem; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Sec Mail-Classifier</h1>
+        <p>In-Browser Machine Learning via Multinomial Naive Bayes</p>
+    </header>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Data Pipeline & Training</h2>
+            <div class="list-container" id="dataset-view"></div>
+            <button id="train-btn">Train ML Model</button>
+
+            <div id="metrics-panel" style="display:none; margin-top: 1.5rem;">
+                <h2>Model Performance</h2>
+                <div class="metrics">
+                    <span>Validation Accuracy:</span>
+                    <span style="color: #fff; font-weight: bold; font-size: 1rem;" id="accuracy-display">0.0%</span>
+                </div>
+                <div class="matrix">
+                    <div class="cell good">T. Negative <div id="cm-tn">0</div></div>
+                    <div class="cell bad">F. Positive <div id="cm-fp">0</div></div>
+                    <div class="cell bad">F. Negative <div id="cm-fn">0</div></div>
+                    <div class="cell good">T. Positive <div id="cm-tp">0</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Live Inference Playground</h2>
+            <div class="btn-group">
+                <button class="btn-sm" data-idx="0">Phishing Link</button>
+                <button class="btn-sm" data-idx="1">Wire Scam</button>
+                <button class="btn-sm" data-idx="2">Work Email</button>
+                <button class="btn-sm" data-idx="3">Personal Email</button>
+            </div>
+            
+            <textarea id="email-input" placeholder="Awaiting raw character input buffers..."></textarea>
+            <button id="predict-btn" disabled>Run Inference Scan</button>
+
+            <div id="result-box" class="result">
+                <strong id="result-title" style="display:block; margin-bottom:0.4rem; font-size:0.9rem; letter-spacing:1px;"></strong>
+                <span id="result-confidence" style="font-size:0.8rem; color: var(--text-muted);"></span>
+                <div class="tags" id="result-features"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. DATASETS
+    const trainingDataset = [
+        { text: "URGENT: Verify your bank account credentials immediately. Click here now.", label: "phish" },
+        { text: "Dear customer, your payroll payment of $5000 failed. Access link to update details.", label: "phish" },
+        { text: "Congratulations! You won a $1000 Amazon gift card. Claim your reward code inside.", label: "phish" },
+        { text: "Security Alert: Unauthorized login attempt detected from Russia. Reset your password.", label: "phish" },
+        { text: "Hey, are we still meeting up for lunch today at 12:30 PM? Let me know.", label: "safe" },
+        { text: "Project update: The quarterly system review has been scheduled for next Tuesday.", label: "safe" },
+        { text: "Attached is the invoice for last month's cloud hosting infrastructure deployment.", label: "safe" },
+        { text: "Can you please send over the final version of the onboarding slideshow presentation?", label: "safe" },
+        { text: "Action Required: Wire transfer confirmation needed for invoice #99402.", label: "phish" },
+        { text: "Your storage is full. Upgrade your subscription package plan today for 50% off.", label: "phish" },
+        { text: "Hey team, remember to submit your weekly timesheets before Friday afternoon.", label: "safe" },
+        { text: "Thanks for subscribing to the developer newsletter! Here is your access code.", label: "safe" }
+    ];
+
+    const validationDataset = [
+        { text: "CRITICAL: Urgent action required on your account. Click to avoid suspension.", label: "phish" },
+        { text: "Your Netflix subscription billing profile has been declined. Fix here.", label: "phish" },
+        { text: "Please review the updated engineering design documents before the meeting.", label: "safe" },
+        { text: "Just checking in to see if you have time for a sync up call tomorrow morning.", label: "safe" }
+    ];
+
+    const samplePayloads = [
+        "URGENT ACCESS! Your security profile has expired. Click here immediately to verify credentials and unlock account.",
+        "Wire transfer alert: Please execute a transfer of $14,500 to the attached vendor routing bank routing number by EOD.",
+        "Hi team, just a reminder that the engineering scrum has been moved to room 3B this afternoon. See you there.",
+        "Hey, left my notebook on your desk after the sync. Can you bring it over if you walk by? Thanks!"
+    ];
+
+    const STOP_WORDS = new Set(["a", "about", "all", "am", "an", "and", "any", "are", "as", "at", "be", "by", "can", "do", "for", "from", "has", "have", "he", "here", "i", "if", "in", "is", "it", "its", "me", "my", "no", "not", "of", "on", "or", "our", "she", "so", "that", "the", "their", "them", "then", "there", "this", "those", "to", "up", "was", "we", "were", "what", "with", "you", "your"]);
+
+    // 2. MODEL ENGINE STATE
+    let model = { vocab: new Set(), priors: {}, likelihoods: { phish: {}, safe: {} }, unk: {}, trained: false };
+
+    function tokenize(text) {
+        return text.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .split(/\s+/)
+            .filter(w => w.length > 1 && !STOP_WORDS.has(w));
+    }
+
+    // 3. CORE ML PIPELINE
+    function trainModel() {
+        let counts = { phish: {}, safe: {} }, totals = { phish: 0, safe: 0 }, docs = { phish: 0, safe: 0 };
+        
+        trainingDataset.forEach(item => {
+            docs[item.label]++;
+            tokenize(item.text).forEach(word => {
+                counts[item.label][word] = (counts[item.label][word] || 0) + 1;
+                totals[item.label]++;
+                model.vocab.add(word);
+            });
+        });
+
+        const totalDocs = trainingDataset.length;
+        model.priors.phish = Math.log(docs.phish / totalDocs);
+        model.priors.safe = Math.log(docs.safe / totalDocs);
+
+        model.vocab.forEach(word => {
+            model.likelihoods.phish[word] = Math.log(((counts.phish[word] || 0) + 1) / (totals.phish + model.vocab.size));
+            model.likelihoods.safe[word] = Math.log(((counts.safe[word] || 0) + 1) / (totals.safe + model.vocab.size));
+        });
+
+        model.unk.phish = Math.log(1 / (totals.phish + model.vocab.size));
+        model.unk.safe = Math.log(1 / (totals.safe + model.vocab.size));
+        model.trained = true;
+
+        evaluateModel();
+    }
+
+    function runInference(text) {
+        if (!model.trained) return null;
+        let scorePhish = model.priors.phish, scoreSafe = model.priors.safe, features = [];
+
+        tokenize(text).forEach(word => {
+            if (model.vocab.has(word)) {
+                scorePhish += model.likelihoods.phish[word];
+                scoreSafe += model.likelihoods.safe[word];
+                if (Math.abs(model.likelihoods.phish[word] - model.likelihoods.safe[word]) > 0.2 && !features.includes(word)) {
+                    features.push(word);
+                }
+            } else {
+                scorePhish += model.unk.phish;
+                scoreSafe += model.unk.safe;
+            }
+        });
+
+        const max = Math.max(scorePhish, scoreSafe);
+        const probPhish = Math.exp(scorePhish - max) / (Math.exp(scorePhish - max) + Math.exp(scoreSafe - max));
+        return { pred: probPhish > 0.5 ? 'phish' : 'safe', conf: probPhish > 0.5 ? probPhish : 1 - probPhish, features };
+    }
+
+    function evaluateModel() {
+        let matrix = { tn: 0, fp: 0, fn: 0, tp: 0 };
+        validationDataset.forEach(item => {
+            const res = runInference(item.text);
+            if (item.label === 'safe') res.pred === 'safe' ? matrix.tn++ : matrix.fp++;
+            if (item.label === 'phish') res.pred === 'phish' ? matrix.tp++ : matrix.fn++;
+        });
+
+        document.getElementById('accuracy-display').textContent = (((matrix.tn + matrix.tp) / validationDataset.length) * 100).toFixed(1) + '%';
+        document.getElementById('cm-tn').textContent = matrix.tn;
+        document.getElementById('cm-fp').textContent = matrix.fp;
+        document.getElementById('cm-fn').textContent = matrix.fn;
+        document.getElementById('cm-tp').textContent = matrix.tp;
+        
+        document.getElementById('metrics-panel').style.display = "block";
+        document.getElementById('predict-btn').disabled = false;
+    }
+
+    // 4. UI INTERACTIVE HANDLERS
+    const datasetView = document.getElementById('dataset-view');
+    trainingDataset.forEach(item => {
+        datasetView.innerHTML += `<div class="list-item"><span>${item.text}</span><span class="badge ${item.label}">${item.label}</span></div>`;
+    });
+
+    document.getElementById('train-btn').addEventListener('click', function() {
+        trainModel();
+        this.textContent = "Model Trained ✓";
+    });
+
+    document.querySelectorAll('.btn-sm').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('email-input').value = samplePayloads[btn.getAttribute('data-idx')];
+        });
+    });
+
+    document.getElementById('predict-btn').addEventListener('click', () => {
+        const text = document.getElementById('email-input').value.trim();
+        const res = runInference(text);
+        if (!res) return;
+
+        const box = document.getElementById('result-box');
+        box.className = `result ${res.pred}`;
+        document.getElementById('result-title').textContent = res.pred === 'phish' ? "⚠️ ATTENTION DETECTED PHISHING VECTOR" : "✅ CLASSIFIED CLEAN DATA STRING";
+        document.getElementById('result-confidence').textContent = `Certainty Coefficient: ${(res.conf * 100).toFixed(2)}%`;
+        
+        const tags = document.getElementById('result-features');
+        tags.innerHTML = res.features.map(f => `<span class="tag">${f}</span>`).join('');
+    });
+</script>
+</body>
+</html>
